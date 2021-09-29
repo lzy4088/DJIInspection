@@ -5,6 +5,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -26,6 +27,7 @@ import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.camera.Camera;
 import dji.sdk.realname.AppActivationManager;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
@@ -170,6 +172,60 @@ public class MainActivity extends AppCompatActivity {
         // 无人机绑定状态文本视图
         tvAircraftBinding = findViewById(R.id.tv_status_aircraftbinding);
 
+        // 获得“访问相机存储(MediaDownload)”按钮实例对象
+        Button btnMediaDownload = findViewById(R.id.btn_media_download);
+        // 对“访问相机存储(MediaDownload)”按钮增加监听器
+        btnMediaDownload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (checkDroneConnection() == false) {
+                    return;
+                }
+                //判断相机对象是否存在，以及是否支持MediaDownload模式
+                Camera camera = getCamera();
+                if (camera == null) {
+                    showToast("相机对象获取失败!");
+                    return;
+                }
+                if (!camera.isMediaDownloadModeSupported()) {
+                    showToast("当前相机不支持MediaDownload模式!");
+                    return;
+                }
+                // 弹出MediaDownloadActivity
+                Intent i = new Intent(MainActivity.this, MediaDownloadActivity.class);
+                startActivity(i);
+            }
+        });
+    }
+
+    //检查无人机连接情况
+    private boolean checkDroneConnection() {
+
+        // 应用程序激活管理器
+        AppActivationManager mgrActivation =
+                DJISDKManager.getInstance().getAppActivationManager();
+        // 判断应用程序是否注册
+        if (!DJISDKManager.getInstance().hasSDKRegistered()) {
+            showToast("应用程序未注册!");
+            return false;
+        }
+        // 判断应用程序是否激活
+        if (mgrActivation.getAppActivationState() != AppActivationState.ACTIVATED) {
+            showToast("应用程序未激活!");
+            return false;
+        }
+        // 判断无人机是否绑定
+        if (mgrActivation.getAircraftBindingState() != AircraftBindingState.BOUND) {
+            showToast("无人机未绑定!");
+            return false;
+        }
+        // 判断无人机连接是否正常
+        BaseProduct product = DJISDKManager.getInstance().getProduct();
+        if (product == null || !product.isConnected()) {
+            showToast("无人机连接失败!");
+            return false;
+        }
+        return true;
     }
 
     // 检查应用程序权限
@@ -303,4 +359,13 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+    // 获得无人机（或手持云台相机）的相机对象（原来应在CameraGimbalActivity类中）
+    private Camera getCamera() {
+        BaseProduct product = DJISDKManager.getInstance().getProduct();
+        if (product != null && product.isConnected()) {
+            return product.getCamera();
+        }
+        return null;
+    }
 }
