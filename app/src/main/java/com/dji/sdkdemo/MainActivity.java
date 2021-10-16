@@ -172,6 +172,21 @@ public class MainActivity extends AppCompatActivity {
         // 无人机绑定状态文本视图
         tvAircraftBinding = findViewById(R.id.tv_status_aircraftbinding);
 
+        // 获得“相机与云台”按钮实例对象
+        Button btnCameraGimbal = findViewById(R.id.btn_camera_gimbal);
+        // 对“相机与云台”按钮增加监听器
+        btnCameraGimbal.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (checkDroneConnection() == false) {
+                    return;
+                }
+                // 弹出CameraGimbalActivity
+                Intent i = new Intent(MainActivity.this, CameraGimbalActivity.class);
+                startActivity(i);
+            }
+        });
+
         // 获得“访问相机存储(MediaDownload)”按钮实例对象
         Button btnMediaDownload = findViewById(R.id.btn_media_download);
         // 对“访问相机存储(MediaDownload)”按钮增加监听器
@@ -360,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // 获得无人机（或手持云台相机）的相机对象（原来应在CameraGimbalActivity类中）
+    // 获得无人机（或手持云台相机）的相机对象
     private Camera getCamera() {
         BaseProduct product = DJISDKManager.getInstance().getProduct();
         if (product != null && product.isConnected()) {

@@ -37,11 +37,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MediaDownloadActivity"
+            android:name=".CameraGimbalActivity"
             android:exported="true"
             android:configChanges="orientation"
             android:parentActivityName=".MainActivity"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"/>
+        <activity
+            android:name=".MediaDownloadActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait" />
 
         <uses-library android:name="com.android.future.usb.accessory" />
         <uses-library
@@ -67,7 +74,7 @@
 
         <service
             android:name="dji.sdk.sdkmanager.DJIGlobalService"
-            tools:ignore="Instantiatable"></service>
+            tools:ignore="Instantiatable" />
 
         <activity
             android:name=".MainActivity"
@@ -80,7 +87,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
     </application>
 
 </manifest>

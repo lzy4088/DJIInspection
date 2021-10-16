@@ -55,6 +55,12 @@
             android:text="获取无人机绑定状态"/>
 
         <Button
+            android:id="@+id/btn_camera_gimbal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="相机与云台" />
+
+        <Button
             android:id="@+id/btn_media_download"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

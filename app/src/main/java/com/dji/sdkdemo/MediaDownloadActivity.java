@@ -269,24 +269,24 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
 
         // 媒体文件列表
         private List<MediaFile> mMediaFiles;
-
+        //构造方法，传递媒体文件列表mediaFiles到成员变量mMediaFiles
         public MediaFileAdapter(List<MediaFile> mediaFiles) {
             mMediaFiles = mediaFiles;
         }
-
+        //创建MediaFileHolder方法
         @NonNull
         @Override
         public MediaFileHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_media_file, parent, false);
             return new MediaFileHolder(v);
         }
-
+        //绑定MediaFileHolder方法，将需要显示的媒体文件对象赋给MediaFileHolder对象
         @Override
         public void onBindViewHolder(@NonNull MediaFileHolder holder, int position) {
             MediaFile mediaFile = mMediaFiles.get(position);
             holder.bind(mediaFile);
         }
-
+        //根据成员变量mMediaFiles中媒体文件的数量定义列表项的数量
         @Override
         public int getItemCount() {
             return mMediaFiles.size();
