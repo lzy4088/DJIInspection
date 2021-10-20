@@ -24,6 +24,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import dji.common.camera.SettingsDefinitions;
@@ -125,7 +126,7 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
             // 子视图
             private ImageView mIvThumbnail;
             private TextView mTvFilename, mTvFilesize, mTvFiledate;
-            private Button mBtnPreview, mBtnDownload, mBtnDelete;
+            private Button mBtnPreview, mBtnDownload, mBtnDelete, mBtnDownloadBatch;
 
             public MediaFileHolder(@NonNull View itemView) {
                 super(itemView);
@@ -137,16 +138,18 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                 mBtnPreview = itemView.findViewById(R.id.btn_preview); // 【查看】按钮
                 mBtnDownload = itemView.findViewById(R.id.btn_download); // 【下载】按钮
                 mBtnDelete = itemView.findViewById(R.id.btn_delete); // 【删除】按钮
+                mBtnDownloadBatch = itemView.findViewById(R.id.btn_download_batch); // 【批量下载】按钮
                 // 初始化按钮单击事件
                 mBtnPreview.setOnClickListener(this);
                 mBtnDownload.setOnClickListener(this);
                 mBtnDelete.setOnClickListener(this);
+                mBtnDownloadBatch.setOnClickListener(this);
             }
             public void bind(MediaFile mediaFile) {
                 mMediaFile = mediaFile;
                 mTvFilename.setText(mMediaFile.getFileName());
                 mTvFilesize.setText("" + mMediaFile.getFileSize() + "Bytes");
-                mTvFiledate.setText(mMediaFile.getDateCreated());
+                mTvFiledate.setText(String.valueOf(mMediaFile.getTimeCreated()));
                 mIvThumbnail.setImageBitmap(mediaFile.getThumbnail());
             }
 
@@ -156,6 +159,7 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                     case R.id.btn_preview: preview();break;
                     case R.id.btn_download: download();break;
                     case R.id.btn_delete: delete();break;
+                    case R.id.btn_download_batch: downloadWithMissionTime(1634288354000L,1634346726000L);break;
                     default: break;
                 }
             }
@@ -264,6 +268,74 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                         showToast("媒体文件删除失败!" + djiError.getDescription());
                     }
                 });
+            }
+
+            // 根据航点飞行任务时间下载媒体文件
+            private void downloadWithMissionTime(long startTime,long endTime) {
+                ArrayList<MediaFile> mMediaFilesInOneMission =new ArrayList<MediaFile>();
+                for(int i = 0;i < mMediaFiles.size();i++){
+                    //文件创建时间在航点飞行任务开始和结束时间之间的才加入到列表中
+                    if(mMediaFiles.get(i).getTimeCreated() <= endTime && mMediaFiles.get(i).getTimeCreated() >= startTime){
+                        mMediaFilesInOneMission.add(mMediaFiles.get(i));
+                    }
+                }
+
+                // 设置下载位置
+                File downloadDir = new File(getExternalFilesDir(null) + "/media/");
+                for (MediaFile tmpMediaFile: mMediaFilesInOneMission) {
+                    // 开始下载文件
+                    tmpMediaFile.fetchFileData(downloadDir, null, new DownloadListener<String>() {
+                        @Override
+                        public void onFailure(DJIError error) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mPgsDlgDownload.cancel();
+                                }
+                            });
+                            showToast("文件下载失败!");
+                        }
+                        @Override
+                        public void onProgress(long total, long current) {
+                        }
+                        @Override
+                        public void onRateUpdate(final long total, final long current, long persize) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    int tmpProgress = (int) (1.0 * current / total * 100);
+                                    mPgsDlgDownload.setProgress(tmpProgress);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onRealtimeDataUpdate(byte[] bytes, long l, boolean b) {
+
+                        }
+
+                        @Override
+                        public void onStart() {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mPgsDlgDownload.incrementProgressBy(-mPgsDlgDownload.getProgress()); // 将下载进度设置为0
+                                    mPgsDlgDownload.show();
+                                }
+                            });
+                        }
+                        @Override
+                        public void onSuccess(String filePath) {
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    mPgsDlgDownload.dismiss();
+                                }
+                            });
+                            showToast("文件" + tmpMediaFile.getFileName() + "下载成功,下载位置为:" + filePath);
+                        }
+                    });
+                }
+
             }
         }
 
@@ -408,6 +480,8 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                         }
                         // 媒体文件列表
                         List<MediaFile> mediaFiles = mMediaManager.getSDCardFileListSnapshot();
+                        //倒序使最近拍的照片在第一个
+                        Collections.reverse(mediaFiles);
                         showMediaFileList(mediaFiles);
                     }
                 });
@@ -521,6 +595,7 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                             @Override
                             public void run() {
                                 // 显示预览图
+                                showToast("文件创建日期(long)：" + mediaFile.getTimeCreated());
                                 mIvMediaFile.setImageBitmap(previewBitmap);
                                 mIvMediaFile.setVisibility(View.VISIBLE);
                                 mIvMediaFile.setOnClickListener(new View.OnClickListener() {

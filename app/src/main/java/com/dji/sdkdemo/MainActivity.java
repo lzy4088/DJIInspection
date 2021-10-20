@@ -167,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.LENGTH_LONG).show();
             }
         });
+
         // 应用程序激活状态文本视图
         tvAppActivation = findViewById(R.id.tv_status_appactivation);
         // 无人机绑定状态文本视图
