@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+
+        <TextView
+            style="?android:listSeparatorTextViewStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="状态信息" />
+
+        <TextView
+            android:id="@+id/tv_status_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="航点任务状态" />
+
+        <TextView
+            android:id="@+id/tv_status_waypoint_mission_execute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="航点任务执行状态" />
+
+
+        <TextView
+            style="?android:listSeparatorTextViewStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="任务执行" />
+
+        <Button
+            android:id="@+id/btn_load_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="加载任务" />
+
+        <Button
+            android:id="@+id/btn_upload_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="上传任务"/>
+
+        <Button
+            android:id="@+id/btn_start_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="开始任务"/>
+
+        <Button
+            android:id="@+id/btn_pause_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="暂停任务"/>
+
+        <Button
+            android:id="@+id/btn_resume_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="继续任务" />
+
+        <Button
+            android:id="@+id/btn_stop_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="停止任务" />
+        <!--android:text="跳转到新建任务界面"-->
+        <Button
+            android:id="@+id/btn_make_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="测试按钮"
+
+            tools:ignore="DuplicateIds" />
+
+        <Button
+            android:id="@+id/btn_new_waypoint_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="新建任务"
+            tools:ignore="DuplicateIds" />
+        <Button
+            android:id="@+id/btn_clear_waypoint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="新建文件或清空航点"
+            tools:ignore="DuplicateIds" />
+        <Button
+            android:id="@+id/btn_record_waypoint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="记录当前航点"
+            tools:ignore="DuplicateIds" />
+
+        <Switch
+            android:id="@+id/switch_photograph"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusableInTouchMode="false"
+            android:text="航点动作：拍照"/>
+
+    </LinearLayout>
+
+</ScrollView>

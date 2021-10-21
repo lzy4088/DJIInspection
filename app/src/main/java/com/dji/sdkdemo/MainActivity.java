@@ -212,6 +212,26 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+
+        //获得“进入航点飞行”按钮实例对象
+        Button btnEnter = (Button) findViewById(R.id.btn_enter);
+        // 对“进入航点飞行”按钮增加监听器
+        btnEnter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (checkDroneConnection() == false) {
+                    return;
+                }
+                //uploadWayPointMission();
+
+
+                //Toast.makeText(MainActivity.this,a, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(MainActivity.this, "开始运行！", Toast.LENGTH_SHORT).show();
+
+                Intent i=new Intent(MainActivity.this, waypoint_activity.class);
+                startActivity(i);
+            }
+        });
     }
 
     //检查无人机连接情况

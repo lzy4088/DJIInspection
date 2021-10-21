@@ -37,6 +37,14 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".make_waypoint_mission_activity"
+            android:parentActivityName=".waypoint_activity"
+            android:exported="true" />
+        <activity
+            android:name=".waypoint_activity"
+            android:parentActivityName=".MainActivity"
+            android:exported="true" />
+        <activity
             android:name=".CameraGimbalActivity"
             android:exported="true"
             android:configChanges="orientation"
