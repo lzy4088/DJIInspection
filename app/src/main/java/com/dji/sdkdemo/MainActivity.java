@@ -179,9 +179,9 @@ public class MainActivity extends AppCompatActivity {
         btnCameraGimbal.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (checkDroneConnection() == false) {
-                    return;
-                }
+//                if (checkDroneConnection() == false) {
+//                    return;
+//                }
                 // 弹出CameraGimbalActivity
                 Intent i = new Intent(MainActivity.this, CameraGimbalActivity.class);
                 startActivity(i);
@@ -194,9 +194,9 @@ public class MainActivity extends AppCompatActivity {
         btnMediaDownload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (checkDroneConnection() == false) {
-                    return;
-                }
+//                if (checkDroneConnection() == false) {
+//                    return;
+//                }
                 //判断相机对象是否存在，以及是否支持MediaDownload模式
                 Camera camera = getCamera();
                 if (camera == null) {
@@ -219,9 +219,9 @@ public class MainActivity extends AppCompatActivity {
         btnEnter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (checkDroneConnection() == false) {
-                    return;
-                }
+//                if (checkDroneConnection() == false) {
+//                    return;
+//                }
                 //uploadWayPointMission();
 
 
@@ -326,9 +326,9 @@ public class MainActivity extends AppCompatActivity {
                             public void onComponentChange(BaseProduct.ComponentKey componentKey,
                                                           BaseComponent oldComponent,
                                                           BaseComponent newComponent) {
-                                String strInfo = String.format("组件变化 键:%s, 旧组件:%s,"
-                                        + "新组件:%s", componentKey, oldComponent, newComponent);
-                                showToast(strInfo);
+//                                String strInfo = String.format("组件变化 键:%s, 旧组件:%s,"
+//                                        + "新组件:%s", componentKey, oldComponent, newComponent);
+//                                showToast(strInfo);
                             }
 
 

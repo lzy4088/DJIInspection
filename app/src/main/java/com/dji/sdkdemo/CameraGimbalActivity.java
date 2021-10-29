@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.DialogInterface;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.view.TextureView;
 import android.view.View;
@@ -15,12 +16,33 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
 import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import dji.common.camera.SettingsDefinitions;
 import dji.common.camera.SystemState;
 import dji.common.error.DJIError;
+import dji.common.flightcontroller.FlightControllerState;
+import dji.common.gimbal.Attitude;
 import dji.common.gimbal.GimbalMode;
 import dji.common.gimbal.GimbalState;
 import dji.common.gimbal.Rotation;
@@ -31,21 +53,30 @@ import dji.sdk.camera.Camera;
 import dji.sdk.camera.Lens;
 import dji.sdk.camera.VideoFeeder;
 import dji.sdk.codec.DJICodecManager;
+import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.gimbal.Gimbal;
 import dji.sdk.media.DownloadListener;
 import dji.sdk.media.MediaFile;
 import dji.sdk.media.MediaManager;
+import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
 public class CameraGimbalActivity extends AppCompatActivity implements View.OnClickListener {
 
-
+    //记录航点
+    float Gimbal_PITCH;
+    private File dir = Environment.getExternalStorageDirectory();
+    private File dataFile = new File(dir,"3D_map_flight.kml");
+    private File dataFile1 = new File(dir,"3D_map_flight1.kml");
+    private boolean Run_judgment;
+    private int Photograph_switch=1;
+    private Document document;
     // PFV显示区域
     private TextureView mTextureViewFPV;
     // 返回按钮
     private Button mBtnBack;
     // 相机相关视图和控件
-    private Button mBtnCameraMode, mBtnTakePicture, mBTnShootDownload, mBtnRecord, mBtnExposureMode, mBtnISO;
+    private Button mBtnCameraMode, mBtnCreateKML, mBtnTakePicture, mBTnShootRecordMission, mBtnRecord, mBtnExposureMode, mBtnISO;
     private TextView mTvCameraMode, mTvRecordingTime ,mTvExposureMode;
     // 云台相关视图和控件
     private Button mBtnExpandGimbalPitch, mBtnMoveGimbalPitch, mBtnGimbalMode;
@@ -91,6 +122,7 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
         initUI();
         // 初始化监听器
         initListener();
+        waypointlistener();
     }
 
     @Override
@@ -117,8 +149,9 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
         mTextureViewFPV = findViewById(R.id.texture_fpv);
         mBtnBack = findViewById(R.id.btn_back);
         mBtnCameraMode = findViewById(R.id.btn_camera_mode);
+        mBtnCreateKML = findViewById(R.id.btn_createKML);
         mBtnTakePicture = findViewById(R.id.btn_take_picture);
-        mBTnShootDownload = findViewById(R.id.btn_shoot_download);
+        mBTnShootRecordMission = findViewById(R.id.btn_shoot_record_mission);
         mBtnRecord = findViewById(R.id.btn_record);
         mBtnExposureMode = findViewById(R.id.btn_exposure_mode);
         mBtnISO = findViewById(R.id.btn_iso);
@@ -244,8 +277,9 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
         // 设置按钮监听器
         mBtnBack.setOnClickListener(this);
         mBtnCameraMode.setOnClickListener(this);
+        mBtnCreateKML.setOnClickListener(this);
         mBtnTakePicture.setOnClickListener(this);
-        mBTnShootDownload.setOnClickListener(this);
+        mBTnShootRecordMission.setOnClickListener(this);
         mBtnRecord.setOnClickListener(this);
         mBtnExposureMode.setOnClickListener(this);
         mBtnISO.setOnClickListener(this);
@@ -279,6 +313,8 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
             gimbal.setStateCallback(new GimbalState.Callback() {
                 @Override
                 public void onUpdate(@NonNull GimbalState gimbalState) {
+                    Attitude Gimbal_Attitude = gimbalState.getAttitudeInDegrees();
+                    Gimbal_PITCH =Gimbal_Attitude.getPitch();
                     mGimbalMode = gimbalState.getMode();
                     updateUI();
                 }
@@ -313,8 +349,9 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
         switch (v.getId()) {
             case R.id.btn_back: back();break;
             case R.id.btn_camera_mode: changeCameraMode();break;
+            case R.id.btn_createKML: createkml();break;
             case R.id.btn_take_picture: takePicture();break;
-            case R.id.btn_shoot_download: shootAndDownload();break;
+            case R.id.btn_shoot_record_mission: Run_judgment = true;break;
             case R.id.btn_record: record();break;
             case R.id.btn_exposure_mode: changeExposureMode();break;
             case R.id.btn_iso: changeCameraISO();break;
@@ -864,6 +901,197 @@ public class CameraGimbalActivity extends AppCompatActivity implements View.OnCl
     // endregion
 
     // region 图传
+
+    // region 记录航点
+
+    //飞行器位置监听器
+    private void waypointlistener() {
+        FlightController flightController = getFlightController();
+        if (flightController != null) {
+
+            flightController.setStateCallback(new FlightControllerState.Callback() {
+                @Override
+                public void onUpdate(@NonNull FlightControllerState state) {
+
+                    DecimalFormat df= new DecimalFormat("######0.00000000");
+
+                    // 获取飞行模式
+                    final String flightMode= state.getFlightModeString();
+                    // 获取无人机经度
+                    final double longitude = state.getAircraftLocation().getLongitude();
+                    // 获取无人机纬度
+                    final double latitude = state.getAircraftLocation().getLatitude();
+                    // 获取无人机X方向移动速度
+                    final double velocityX = state.getVelocityX();
+                    // 获取无人机Y方向移动速度
+                    final double velocityY = state.getVelocityY();
+                    // 获取无人机Z方向移动速度
+                    final double velocityZ = state.getVelocityZ();
+
+                    // 获取无人机高度
+                    final float altitude=state.getAircraftLocation().getAltitude();
+                    // 获取卫星连接数量
+                    final double satelliteCount = state.getSatelliteCount();
+                    // 获取无人机航向
+                    final double yaw = state.getAttitude().yaw ;//* Math.PI / 180;
+//                    // 获取无人机航向
+//                    final double yaw = state.getAttitude().yaw * Math.PI / 3.1415;
+
+
+
+                    if(Run_judgment==true) {
+                        if(longitude-0.0<1e-6 || latitude-0.0<1e-6){
+                            String Aircraft_information = String.format("无法定位");
+                            showToast(Aircraft_information);
+                        }
+                        else {
+                            takePicture();
+                            showToast( String.format("运行"));
+                            add_waypoint_tokml("waypoint",longitude, latitude,(float)altitude, (int)yaw,(int)Gimbal_PITCH,Photograph_switch);
+
+                            String Aircraft_information = String.format("经度:%s, 纬度:%s,高度%s,航向:%s,云台角：%s,拍照：%s\r\n", longitude, latitude,altitude, yaw,Gimbal_PITCH,Photograph_switch);
+                            showToast(Aircraft_information);
+                            Run_judgment = false;
+                        }
+                    }
+                }
+            });
+        } else {
+
+            showToast("飞行控制器获取失败，请检查飞行器连接是否正常!");
+        }
+
+
+
+
+    }
+
+    //kml新建函数
+    private void createkml() {//创建xml文档
+        try
+        {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+
+            this.document = db.newDocument();//创建xml与解析xml不同的地方
+            document.normalize();
+        }
+        catch(ParserConfigurationException e)
+        {
+            showToast( String.format(e.getMessage()));
+        }
+
+        Element root = document.createElement("Folder");//创建根节点
+        document.appendChild(root);
+
+        TransformerFactory tf = TransformerFactory.newInstance();
+        try
+        {
+            Transformer transformer = tf.newTransformer();
+            DOMSource source = new DOMSource(document);
+            PrintWriter pw = new PrintWriter(new FileOutputStream(dataFile1,false));
+            StreamResult result = new StreamResult(pw);
+            transformer.transform(source, result);
+            showToast( String.format("生成空XML文件成功"));
+        }
+        catch(TransformerConfigurationException e)
+        {
+            showToast( String.format(e.getMessage()));
+        }
+        catch(IllegalArgumentException e)
+        {
+            showToast( String.format(e.getMessage()));
+        }
+        catch(FileNotFoundException e)
+        {
+            showToast( String.format(e.getMessage()));
+        }
+        catch(TransformerException e)
+        {
+            showToast( String.format(e.getMessage()));
+        }
+
+    }
+
+    private FlightController getFlightController() {
+        BaseProduct product = DJISDKManager.getInstance().getProduct();
+        if (product != null && product.isConnected()) {
+            if (product instanceof Aircraft) {
+                return ((Aircraft) product).getFlightController();
+            }
+        }
+        return null;
+    }
+
+    public void add_waypoint_tokml(String name, double longitude,double latitude,float altitude,int yaw,int gimbalPitch,int ShootPhoto){
+        try {
+            DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder;
+            builder = builderFactory.newDocumentBuilder();
+            Document document = builder.parse(dataFile1);
+
+            //Element element = document.getDocumentElement();
+            Element root= document.getDocumentElement();
+            Element Placemark = document.createElement("Placemark");
+
+            Element name_point=document.createElement("name");
+            name_point.setTextContent(name);
+            Placemark.appendChild(name_point);
+
+            Element description=document.createElement("description");
+            description.setTextContent("Waypoint");
+            Placemark.appendChild(description);
+
+            Element visibility=document.createElement("visibility");
+            visibility.setTextContent("1");
+            Placemark.appendChild(visibility);
+
+            Element mis_heading = document.createElement("mis:heading");
+            mis_heading.setTextContent(String.valueOf(yaw));
+            Placemark.appendChild(mis_heading);
+
+            Element mis_turnMode = document.createElement("mis:turnMode");
+            mis_turnMode.setTextContent("clockwise");
+            Placemark.appendChild(mis_turnMode);
+
+            Element mis_gimbalPitch = document.createElement("mis:gimbalPitch");
+            mis_gimbalPitch.setTextContent(String.valueOf(gimbalPitch));
+            Placemark.appendChild(mis_gimbalPitch);
+
+            if(ShootPhoto==1){
+                Element actions_ShootPhoto = document.createElement("mis:actions");
+                actions_ShootPhoto.setTextContent("ShootPhoto");
+                Placemark.appendChild(actions_ShootPhoto);
+            }
+
+            Element Point = document.createElement("Point");
+            Element altitudeMode = document.createElement("altitudeMode");
+            altitudeMode.setTextContent("relativeToGround");
+            Point.appendChild(altitudeMode);
+            Element coordinates = document.createElement("coordinates");
+            coordinates.setTextContent(String.valueOf(longitude) +","+ String.valueOf(latitude) +","+ String.valueOf(altitude));
+            Point.appendChild(coordinates);
+            Placemark.appendChild(Point);
+
+            root.appendChild(Placemark);
+
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            //DOMSource source = new DOMSource(doc);
+            Source source = new DOMSource(document);
+            //StreamResult result = new StreamResult();
+            Result result = new StreamResult(dataFile1);
+            transformer.transform(source, result);//将 XML==>Source 转换为 Result
+
+
+            //showToast( String.format("写入成功"));
+        }catch(Exception e) {
+            e.printStackTrace();
+            showToast( String.format("写入失败"));
+        }
+
+    }
+
+    //endregion
 
     // 使TextureView的宽高比适合视频流
     private void fitTextureViewToFPV() {

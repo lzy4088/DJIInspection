@@ -46,11 +46,35 @@
             android:layout_height="wrap_content"
             android:text="加载任务" />
 
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <RadioGroup
+            android:layout_width="fill_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/Button_externalKML"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:text="用外部导入kml" />
+
+            <RadioButton
+                android:id="@+id/Button_flightKML"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="用航飞保存kml" />
+        </RadioGroup>
+
         <Button
             android:id="@+id/btn_upload_waypoint_mission"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="上传任务"/>
+            android:text="上传任务" />
 
         <Button
             android:id="@+id/btn_start_waypoint_mission"

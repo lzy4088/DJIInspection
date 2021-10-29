@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.TextureView;
@@ -12,9 +13,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.chip.Chip;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -86,12 +91,13 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     private Button mBtnLoadWaypointMission, mBtnUploadWaypointMission, mBtnStartWaypointMission,mBtnclearwaypoint;
     private Button mBtnPauseWaypointMission, mBtnResumeWaypointMission, mBtnStopWaypointMission,mBtnmakeWaypointMission,mBtnnewwaypointmission,mBtnrecordwaypoint;
     private Switch mSwitchPhotograph;
+    private RadioButton mExternalKML,mFlightKML;
     private FlightController mFlightController;
-    private boolean mIsCameraRecording, mIsCameraStoringPhoto;
+    private boolean isChecked=false;
     private SettingsDefinitions.CameraMode mCameraMode;
     Attitude mGimbalangle;
     float Gimbal_PITCH;
-    int Photograph_switch=0;
+    int Photograph_switch=0,kml_select=0;
     String str1;
     byte[] buffer;
     File file;
@@ -110,11 +116,11 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     Double[][] LatLng = new Double[0][0];
 
     private File dir = Environment.getExternalStorageDirectory();
-    //private File dataFile = new File(dir,"3D_map_flight.kml");
-    private File dataFile1 = new File(dir,"3D_map_flight.kml");
+    public File dataFile = new File(dir,"3D_map_flight.kml");
+    public File dataFile1 = new File(dir,"3D_map_flight1.kml");
     private WaypointMissionOperatorListener mWaypointMissionOperatorListener;
     private Document document;
-
+    private long startTime = 1634288354000L,endTime = 1634346726000L;
 
 
     @Override
@@ -145,6 +151,9 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
         mBtnrecordwaypoint = findViewById(R.id.btn_record_waypoint); // 【加载任务】按钮
         mBtnclearwaypoint = findViewById(R.id.btn_clear_waypoint); // 【加载任务】按钮
         mSwitchPhotograph = findViewById(R.id.switch_photograph);
+        mExternalKML = findViewById(R.id.Button_externalKML);
+        mFlightKML = findViewById(R.id.Button_flightKML);
+
 
         mBtnLoadWaypointMission.setOnClickListener(this);
         mBtnUploadWaypointMission.setOnClickListener(this);
@@ -157,6 +166,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
         mBtnrecordwaypoint.setOnClickListener(this);
         mBtnclearwaypoint.setOnClickListener(this);
         mSwitchPhotograph.setOnClickListener(this);
+        mExternalKML.setOnClickListener(this);
+        mFlightKML.setOnClickListener(this);
     }
 
     // 初始化航点任务操作器
@@ -197,7 +208,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
 
             @Override
             public void onExecutionStart() {
-                showToast("开始执行任务!");
+                startTime = System.currentTimeMillis();
+                showToast("开始执行任务!开始时间：" + startTime);
             }
 
             @Override
@@ -212,6 +224,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
                     public void run() {
                         mTvStatusWaypointMission.setText("航点任务状态:已经结束");
                         mTvStatusWaypointMissionExecute.setText("已结束");
+                        showToast("任务结束!结束时间：" + endTime);
+                        endTime = System.currentTimeMillis();
                     }
                 });
             }
@@ -243,7 +257,21 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
             case R.id.btn_record_waypoint: recordwaypoint(); break;
             case R.id.btn_clear_waypoint: clearwaypoint(); break;
             case R.id.switch_photograph: Photograph_switch();break;
+            case R.id.Button_externalKML: useExternalKML(); break;
+            case R.id.Button_flightKML: useFlightKML();break;
         }
+    }
+
+    //单选按钮，选择使用的kml
+    private void useFlightKML() {
+        RadioButton   ButtonexternalKML = (RadioButton )findViewById(R.id.Button_externalKML);
+        ButtonexternalKML.clearFocus();
+        kml_select=0;
+    }
+    private void useExternalKML() {
+        RadioButton   ButtonflightKML = (RadioButton )findViewById(R.id.Button_flightKML);
+        ButtonflightKML.clearFocus();
+        kml_select=1;
     }
 
     // 加载航点任务
@@ -272,7 +300,12 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
 
         //Data_analysis();
         WaypointMission.Builder builder = new WaypointMission.Builder();
-        analysis_kml();
+        if(kml_select==0){
+            analysis_kml(dataFile1);
+        }else {
+            analysis_kml(dataFile);
+        }
+
         //showToast("正在运行" );
 
         if(lon_list.size()<1){
@@ -469,17 +502,22 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     // 测试按钮
-    private void makeWaypointMission() {//Gimbal=new GimbalBalanceDetectionState();
-
-        Button btnmakewaypointmission = (Button) findViewById(R.id.btn_make_waypoint_mission);
-        btnmakewaypointmission.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                /////////////////////////////////////////////////////////////////////////////////////////////////////////
-                
-                //////////////////////////////////////////////////////////////////////////////////////////////////////////
-            }
-        });
+    private void makeWaypointMission() {
+        Camera camera = getCamera();
+        if (camera == null) {
+            showToast("相机对象获取失败!");
+            return;
+        }
+        if (!camera.isMediaDownloadModeSupported()) {
+            showToast("当前相机不支持MediaDownload模式!");
+            return;
+        }
+        Intent intent=new Intent(waypoint_activity.this,MediaDownloadActivity.class);
+        Bundle bundle=new Bundle();
+        bundle.putLong("startTime",startTime);//传递一个名为键为startTime值为startTime的long类型数据
+        bundle.putLong("endTime",endTime);
+        intent.putExtras(bundle);//传递过去
+        startActivity(intent);
     }
 
     //新建航点任务 防误触
@@ -502,7 +540,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
             if(Photograph_switch==1){
                 Camera camera = getCamera();
                 setCameraMode(camera, SettingsDefinitions.CameraMode.SHOOT_PHOTO);
-                takePicture();
+                //takePicture();
             }
         }
         else{
@@ -514,22 +552,15 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     //拍照选择建
     private void Photograph_switch(){
 
-        Switch switchphotograph= (Switch) findViewById(R.id.switch_photograph);
-        switchphotograph.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                if (isChecked){
-                    showToast(String.format("拍照模式" ));;
-                    Photograph_switch=1;
-                }else {
-                    //showToast(String.format("结束" ));;
-                    Photograph_switch=0;
-                }
+        if (isChecked){
 
-            }
-
-        });
-
+            Photograph_switch=0;
+            isChecked=false;
+        }else {
+            showToast(String.format("拍照模式" ));;
+            Photograph_switch=1;
+            isChecked=true;
+        }
     }
 
     //新建or清空航点
@@ -543,8 +574,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
             mis_gimbalPitch.clear();
             createkml();
             //Write_data("");
-            String Aircraft_information = String.format("已清除");
-            showToast(Aircraft_information);
+            //String Aircraft_information = String.format("已清除");
+            //showToast(Aircraft_information);
         }
         else{
             String Aircraft_information = String.format("请新建航点任务" );
@@ -592,7 +623,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     //内部存储读txt航点文件
-    public String ReadSysFile(String filename) {
+    private String ReadSysFile(String filename) {
         try {
             FileInputStream fis = openFileInput(filename);
             InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
@@ -610,7 +641,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     //读txt航点字符串数据解析
-    public void Data_analysis(){
+    private void Data_analysis(){
         String str = ReadSysFile("Waypoint_mission.txt");
         String Aircraft_information = String.format("当前航点列表\n"+str);
         showToast(Aircraft_information);
@@ -625,7 +656,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     //kml读 解析函数  传入kml字符串，获取到标签内的内容
-    public void analysis_kml(){
+    private void analysis_kml(File dataFile){
         //int j=0;
         lon_list.clear();
         mis_turnMode.clear();
@@ -638,7 +669,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
             DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder;
             builder = builderFactory.newDocumentBuilder();
-            Document document = builder.parse(dataFile1);
+            Document document = builder.parse(dataFile);
             Element element1= document.getDocumentElement();
             NodeList nodeList  = element1.getElementsByTagName("Placemark");
 
@@ -687,7 +718,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     //kml添加点
-    public void add_waypoint_tokml(String name, double longitude,double latitude,float altitude,int yaw,int gimbalPitch,int ShootPhoto){
+    private void add_waypoint_tokml(String name, double longitude,double latitude,float altitude,int yaw,int gimbalPitch,int ShootPhoto){
         try {
             DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder;
@@ -755,8 +786,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
 
     }
 
-    //kml写函数
-    public void createkml() {//创建xml文档
+    //kml新建函数
+    private void createkml() {//创建xml文档
         try
         {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -781,7 +812,7 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
             PrintWriter pw = new PrintWriter(new FileOutputStream(dataFile1,false));
             StreamResult result = new StreamResult(pw);
             transformer.transform(source, result);
-            showToast( String.format("生成XML文件成功"));
+            showToast( String.format("生成空XML文件成功"));
         }
         catch(TransformerConfigurationException e)
         {
@@ -802,41 +833,6 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
 
     }
 
-    //拍照
-    private void takePicture() {
-        final Camera camera = getCamera();
-        if (camera != null ){
-            // 判断是否为拍照模式
-            if (mCameraMode != SettingsDefinitions.CameraMode.SHOOT_PHOTO) {
-                showToast("未处在拍照模式下!");
-                return;
-            }
-            // 判断是否正在存储照片数据
-            if (mIsCameraStoringPhoto) {
-                showToast("相机繁忙，请稍后!");
-                return;
-            }
-            // 设置单拍模式
-            camera.setShootPhotoMode(SettingsDefinitions.ShootPhotoMode.SINGLE, new CommonCallbacks.CompletionCallback() {
-                @Override
-                public void onResult(DJIError djiError) {
-                    if (djiError == null) {
-                        // 开始拍照
-                        camera.startShootPhoto(new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                if (djiError == null) {
-                                    showToast("拍照成功!");
-                                } else {
-                                    showToast("拍照失败:" + djiError.getDescription());
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-    }
 
     // 获得无人机（或手持云台相机）的相机对象
     private Camera getCamera() {
@@ -900,75 +896,8 @@ public class waypoint_activity extends AppCompatActivity implements View.OnClick
     }
 
     // 获取航点任务操作器
-    public WaypointMissionOperator getWaypointMissionOperator() {
+    private WaypointMissionOperator getWaypointMissionOperator() {
         return DJISDKManager.getInstance().getMissionControl().getWaypointMissionOperator();
-    }
-
-    private void downloadWithMissionTime(long startTime,long endTime) {
-        ArrayList<MediaFile> mMediaFilesInOneMission =new ArrayList<MediaFile>();
-        for(int i = 0;i < mMediaFiles.size();i++){
-            //文件创建时间在航点飞行任务开始和结束时间之间的才加入到列表中
-            if(mMediaFiles.get(i).getTimeCreated() <= endTime && mMediaFiles.get(i).getTimeCreated() >= startTime){
-                mMediaFilesInOneMission.add(mMediaFiles.get(i));
-            }
-        }
-
-        // 设置下载位置
-        File downloadDir = new File(getExternalFilesDir(null) + "/media/");
-        for (MediaFile tmpMediaFile: mMediaFilesInOneMission) {
-            // 开始下载文件
-            tmpMediaFile.fetchFileData(downloadDir, null, new DownloadListener<String>() {
-                @Override
-                public void onFailure(DJIError error) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mPgsDlgDownload.cancel();
-                        }
-                    });
-                    showToast("文件下载失败!");
-                }
-                @Override
-                public void onProgress(long total, long current) {
-                }
-                @Override
-                public void onRateUpdate(final long total, final long current, long persize) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            int tmpProgress = (int) (1.0 * current / total * 100);
-                            mPgsDlgDownload.setProgress(tmpProgress);
-                        }
-                    });
-                }
-
-                @Override
-                public void onRealtimeDataUpdate(byte[] bytes, long l, boolean b) {
-
-                }
-
-                @Override
-                public void onStart() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mPgsDlgDownload.incrementProgressBy(-mPgsDlgDownload.getProgress()); // 将下载进度设置为0
-                            mPgsDlgDownload.show();
-                        }
-                    });
-                }
-                @Override
-                public void onSuccess(String filePath) {
-                    runOnUiThread(new Runnable() {
-                        public void run() {
-                            mPgsDlgDownload.dismiss();
-                        }
-                    });
-                    showToast("文件" + tmpMediaFile.getFileName() + "下载成功,下载位置为:" + filePath);
-                }
-            });
-        }
-
     }
 
     //飞行器位置监听器

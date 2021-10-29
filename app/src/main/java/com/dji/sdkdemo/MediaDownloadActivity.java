@@ -1,6 +1,7 @@
 package com.dji.sdkdemo;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -68,6 +69,8 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
     private MediaManager mMediaManager;
     // 媒体任务调度器
     private FetchMediaTaskScheduler mScheduler;
+    //所选任务的开始结束时间，用于标识要显示哪一次航点飞行任务的照片
+    private long missionStartTime = 0, missionEndTime = 0;
 
     /// 以下对象用于接收视频回放视频流
     // 编码译码器
@@ -159,7 +162,8 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                     case R.id.btn_preview: preview();break;
                     case R.id.btn_download: download();break;
                     case R.id.btn_delete: delete();break;
-                    case R.id.btn_download_batch: downloadWithMissionTime(1634288354000L,1634346726000L);break;
+                    //case R.id.btn_download_batch: downloadWithMissionTime(1634288354000L,1634346726000L);break;
+                    case R.id.btn_download_batch: downloadWithMissionTime(missionStartTime,missionEndTime);break;
                     default: break;
                 }
             }
@@ -279,63 +283,80 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
                         mMediaFilesInOneMission.add(mMediaFiles.get(i));
                     }
                 }
-
-                // 设置下载位置
-                File downloadDir = new File(getExternalFilesDir(null) + "/media/");
+                String fileNames = "";
                 for (MediaFile tmpMediaFile: mMediaFilesInOneMission) {
-                    // 开始下载文件
-                    tmpMediaFile.fetchFileData(downloadDir, null, new DownloadListener<String>() {
-                        @Override
-                        public void onFailure(DJIError error) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mPgsDlgDownload.cancel();
-                                }
-                            });
-                            showToast("文件下载失败!");
-                        }
-                        @Override
-                        public void onProgress(long total, long current) {
-                        }
-                        @Override
-                        public void onRateUpdate(final long total, final long current, long persize) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    int tmpProgress = (int) (1.0 * current / total * 100);
-                                    mPgsDlgDownload.setProgress(tmpProgress);
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onRealtimeDataUpdate(byte[] bytes, long l, boolean b) {
-
-                        }
-
-                        @Override
-                        public void onStart() {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mPgsDlgDownload.incrementProgressBy(-mPgsDlgDownload.getProgress()); // 将下载进度设置为0
-                                    mPgsDlgDownload.show();
-                                }
-                            });
-                        }
-                        @Override
-                        public void onSuccess(String filePath) {
-                            runOnUiThread(new Runnable() {
-                                public void run() {
-                                    mPgsDlgDownload.dismiss();
-                                }
-                            });
-                            showToast("文件" + tmpMediaFile.getFileName() + "下载成功,下载位置为:" + filePath);
-                        }
-                    });
+                    fileNames = fileNames + tmpMediaFile.getFileName() + "\n";
                 }
+                AlertDialog alertDialog = new AlertDialog.Builder(MediaDownloadActivity.this).create();
+                alertDialog.setTitle("Ready to download with mission!");
+                alertDialog.setMessage("Mission start time:" + startTime + "\nMission end time:" + endTime + "\nDownloaded files:\n" + fileNames);
+                alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, "是", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // 设置下载位置
+                        File downloadDir = new File(getExternalFilesDir(null) + "/media/");
+                        for (MediaFile tmpMediaFile: mMediaFilesInOneMission) {
+                            // 开始下载文件
+                            tmpMediaFile.fetchFileData(downloadDir, null, new DownloadListener<String>() {
+                                @Override
+                                public void onFailure(DJIError error) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mPgsDlgDownload.cancel();
+                                        }
+                                    });
+                                    showToast("文件下载失败!");
+                                }
+                                @Override
+                                public void onProgress(long total, long current) {
+                                }
+                                @Override
+                                public void onRateUpdate(final long total, final long current, long persize) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            int tmpProgress = (int) (1.0 * current / total * 100);
+                                            mPgsDlgDownload.setProgress(tmpProgress);
+                                        }
+                                    });
+                                }
 
+                                @Override
+                                public void onRealtimeDataUpdate(byte[] bytes, long l, boolean b) {
+
+                                }
+
+                                @Override
+                                public void onStart() {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mPgsDlgDownload.incrementProgressBy(-mPgsDlgDownload.getProgress()); // 将下载进度设置为0
+                                            mPgsDlgDownload.show();
+                                        }
+                                    });
+                                }
+                                @Override
+                                public void onSuccess(String filePath) {
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            mPgsDlgDownload.dismiss();
+                                        }
+                                    });
+                                    showToast("文件" + tmpMediaFile.getFileName() + "下载成功,下载位置为:" + filePath);
+                                }
+                            });
+                        }
+                    }
+                });
+                alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "否", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        return;
+                    }
+                });
+                alertDialog.show();
             }
         }
 
@@ -432,6 +453,14 @@ public class MediaDownloadActivity extends AppCompatActivity implements View.OnC
 
     // 初始化媒体管理器
     private void initMediaManager() {
+        final Bundle bundle;
+        //获取航点飞行时间
+        if(getIntent().hasExtra("startTime") == true && getIntent().hasExtra("endTime") == true) {
+            bundle=getIntent().getExtras();
+            missionStartTime=bundle.getLong("startTime");
+            missionEndTime=bundle.getLong("endTime");
+        }
+
         Camera camera = getCamera();
         // 判断相机对象非空，且支持媒体下载模式
         if (camera == null) {

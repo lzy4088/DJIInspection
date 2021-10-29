@@ -29,12 +29,12 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btn_camera_mode"
+        android:id="@+id/btn_createKML"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="6dp"
         android:layout_marginBottom="6dp"
-        android:text="改变相机模式"
+        android:text="航点初始化"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -46,15 +46,15 @@
         android:layout_marginBottom="6dp"
         android:text="拍照"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btn_camera_mode"/>
+        app:layout_constraintStart_toEndOf="@+id/btn_createKML"/>
 
     <Button
-        android:id="@+id/btn_shoot_download"
+        android:id="@+id/btn_shoot_record_mission"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="6dp"
         android:layout_marginBottom="6dp"
-        android:text="拍照并下载"
+        android:text="拍照并记录航点"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@+id/btn_take_picture"/>
 
@@ -66,7 +66,7 @@
         android:layout_marginBottom="6dp"
         android:text="录像"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btn_shoot_download" />
+        app:layout_constraintStart_toEndOf="@+id/btn_shoot_record_mission" />
 
     <Button
         android:id="@+id/btn_exposure_mode"
@@ -97,7 +97,7 @@
         android:background="#FFFFFF"
         android:padding="4dp"
         android:text="当前相机模式：N/A"
-        app:layout_constraintBottom_toTopOf="@+id/btn_camera_mode"
+        app:layout_constraintBottom_toTopOf="@+id/btn_createKML"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -164,6 +164,16 @@
         android:layout_marginEnd="6dp"
         android:text="改变云台模式"
         app:layout_constraintEnd_toStartOf="@+id/btn_move_gimbal_pitch"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btn_camera_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="6dp"
+        android:text="改变相机模式"
+        app:layout_constraintEnd_toStartOf="@+id/btn_gimbal_mode"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
